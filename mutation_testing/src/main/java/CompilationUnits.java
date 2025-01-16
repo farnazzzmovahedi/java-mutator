@@ -11,18 +11,14 @@ import java.util.List;
 
 public class CompilationUnits {
     private List<CompilationUnit> compilationUnits;
-    private String pathname;
+    private File sourceDir;
 
     public CompilationUnits(String pathname) {
         this.compilationUnits = new ArrayList<>();
-        this.pathname = pathname;
+        this.sourceDir = new File(pathname);
     }
 
-
     private void make() throws FileNotFoundException {
-        // Path to your directory containing the "reference code"
-        File sourceDir = new File(pathname);
-
         // Setup Symbol Solver
         CombinedTypeSolver typeSolver = new CombinedTypeSolver();
         typeSolver.add(new ReflectionTypeSolver()); // Standard Java types
