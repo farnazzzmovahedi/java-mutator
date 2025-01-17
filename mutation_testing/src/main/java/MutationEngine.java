@@ -1,4 +1,8 @@
+import com.github.javaparser.ast.CompilationUnit;
 import operators.encapsulation.AMC;
+import operators.inheritance.IHI;
+import operators.polymorphism.PNC;
+import utils.CompilationUnits;
 
 import java.io.File;
 import java.util.List;
@@ -11,7 +15,7 @@ public class MutationEngine {
         this.originalFile = originalFile;
     }
 
-    public void applyMutations(String[] operators) {
+    public void applyMutations(String[] operators, List<CompilationUnit> compilationUnits) {
         for (String operator : operators) {
             // Create mutants based on the operator
             switch (operator.trim().toUpperCase()) {
@@ -20,7 +24,14 @@ public class MutationEngine {
                     // Call the AMC mutation operator
                     break;
                 case "IHI":
-                    // Call the IHI mutation operator
+                    System.out.println("print IHI");
+                    IHI.applyIHI(compilationUnits, "mutants/Example_IHI.java");
+                    break;
+                case "PNC":
+                    PNC.applyPNC(compilationUnits);
+                    break;
+                case "PMD":
+//                    PMD.applyPNC(compilationUnits);
                     break;
                 // Add more cases for other operators
                 default:

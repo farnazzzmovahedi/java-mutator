@@ -1,9 +1,14 @@
 
+import com.github.javaparser.ast.CompilationUnit;
+import utils.CompilationUnits;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         Scanner scanner = new Scanner(System.in);
 
         // Input file path
@@ -23,8 +28,10 @@ public class Main {
         // Instantiate the MutationEngine
         MutationEngine mutationEngine = new MutationEngine(originalFile);
 
+        List<CompilationUnit> compilationUnits = new CompilationUnits(filePath).get();
+
         // Apply mutations
-        mutationEngine.applyMutations(operators);
+        mutationEngine.applyMutations(operators, compilationUnits);
 
         System.out.println("Mutations applied.");
     }
