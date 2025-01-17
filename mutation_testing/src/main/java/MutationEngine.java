@@ -1,6 +1,8 @@
 import com.github.javaparser.ast.CompilationUnit;
 import operators.encapsulation.AMC;
 import operators.inheritance.IHI;
+import operators.inheritance.ISD;
+import operators.inheritance.ISI;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
 import utils.CompilationUnits;
@@ -32,6 +34,12 @@ public class MutationEngine {
                     break;
                 case "PMD":
                     PMD.applyPMD(compilationUnits);
+                    break;
+                case "ISI":
+                    ISI.applyISI(compilationUnits, "mutants/Example_ISI.java");
+                    break;
+                case "ISD":
+                    ISD.applyISD(compilationUnits, "mutants/Example_ISD.java");
                     break;
                 // Add more cases for other operators
                 default:
