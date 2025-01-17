@@ -5,14 +5,13 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import utils.MutantSaver;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class PMD {
     public static void applyPMD(List<CompilationUnit> compilationUnits) {
-        Random random = new Random();
 
         // Map to store child-to-parent relationships
         Map<ClassOrInterfaceType, ClassOrInterfaceType> childToParentMap = new HashMap<>();
@@ -37,24 +36,31 @@ public class PMD {
             List<FieldDeclaration> fields = cu.findAll(FieldDeclaration.class);
 
             fields.stream()
-                    .filter(field -> childToParentMap.containsKey(field.getElementType().asClassOrInterfaceType())) // Check if it's of child type
+                    .filter(field -> {
+                        // Ensure that the field's element type is a class or interface type
+                        return field.getElementType().isClassOrInterfaceType() && childToParentMap.containsKey(field.getElementType().asClassOrInterfaceType());
+                    })
                     .forEach(field -> {
-                        // Get the child class type of the field
-                        ClassOrInterfaceType childType = (ClassOrInterfaceType) field.getElementType();
+                        // Get the element type and ensure it's a class or interface type
+                        if (field.getElementType().isClassOrInterfaceType()) {
+                            ClassOrInterfaceType childType = field.getElementType().asClassOrInterfaceType();
 
-                        // Get the parent class for the child class
-                        ClassOrInterfaceType parentType = childToParentMap.get(childType);
+                            // Get the parent class for the child class
+                            ClassOrInterfaceType parentType = childToParentMap.get(childType);
 
-                        if (parentType != null) {
-                            // Change the type of the member variable to the parent class
-                            childType.setName(parentType.getNameAsString());
+                            if (parentType != null) {
+                                // Change the type of the member variable to the parent class
+                                childType.setName(parentType.getNameAsString());
 
-                            // Save the mutated code for the CompilationUnit where the mutation occurred
-                            MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\mutants\\Example_PMD");
+                                // Save the mutated code for the CompilationUnit where the mutation occurred
+                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PMD");
+                            }
+                        } else {
+                            // Handle primitive types or other non-ClassOrInterfaceType cases
+                            // You can add custom logic here if needed
+                            System.out.println("Field is not a ClassOrInterfaceType: " + field.getElementType());
                         }
                     });
         }
-
     }
-
 }
