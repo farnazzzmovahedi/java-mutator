@@ -1,7 +1,7 @@
 package RefrenceCode;
 
 // Child.java
-public class Child extends Parent {
+public class C extends P {
     @Override
     public void display() {
         System.out.println("Display from Child");

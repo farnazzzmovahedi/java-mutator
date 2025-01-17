@@ -1,7 +1,7 @@
 package RefrenceCode;
 
-// Parent.java
-public class Parent {
+// P.java
+public class P {
     public void display() {
         System.out.println("Display from Parent");
     }

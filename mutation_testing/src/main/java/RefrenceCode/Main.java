@@ -4,13 +4,13 @@ package RefrenceCode;
 public class Main {
     public static void main(String[] args) {
         // PNC Example
-        Parent parentRef = new Parent(); // Parent reference to a Child object
+        P parentRef = new P(); // Parent reference to a Child object
         parentRef.display(); // Polymorphic behavior
 
         // PMD Example
-        Parent parentObj = new Child();
-        Child childObj = new Child();
-        Sibling siblingObj = new Sibling();
+        P parentObj = new C();
+        C childObj = new C();
+        S siblingObj = new S();
 
         // PRV Example
         parentRef = siblingObj; // Reassigning Parent reference to Sibling object
@@ -23,7 +23,7 @@ public class Main {
         parentObj.show("Hello"); // Calling method in Parent class
     }
 
-    public static void someMethod(Parent parent) {
+    public static void someMethod(P parent) {
         parent.display();
     }
 }
