@@ -2,6 +2,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import operators.encapsulation.AMC;
 import operators.inheritance.IHI;
 import operators.polymorphism.PNC;
+import operators.polymorphism.PMD;
 import utils.CompilationUnits;
 
 import java.io.File;
@@ -24,14 +25,13 @@ public class MutationEngine {
                     // Call the AMC mutation operator
                     break;
                 case "IHI":
-                    System.out.println("print IHI");
                     IHI.applyIHI(compilationUnits, "mutants/Example_IHI.java");
                     break;
                 case "PNC":
                     PNC.applyPNC(compilationUnits);
                     break;
                 case "PMD":
-//                    PMD.applyPNC(compilationUnits);
+                    PMD.applyPMD(compilationUnits);
                     break;
                 // Add more cases for other operators
                 default:

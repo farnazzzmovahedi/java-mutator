@@ -4,12 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import utils.CompilationUnits;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import utils.MutantSaver;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,33 +50,11 @@ public class PMD {
                             childType.setName(parentType.getNameAsString());
 
                             // Save the mutated code for the CompilationUnit where the mutation occurred
-                            saveMutatedCode(cu);
+                            MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\mutants\\Example_PMD");
                         }
                     });
         }
 
     }
-    private static void saveMutatedCode(CompilationUnit cu) {
-        try {
-            File mutantsDir = new File("D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\mutants");
-            if (!mutantsDir.exists()) {
-                mutantsDir.mkdirs();
-            }
-            FileOutputStream out = new FileOutputStream(new File(mutantsDir, "Mutant_" + cu.getStorage().get().getFileName()));
-            out.write(cu.toString().getBytes());
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public static void main(String[] args) throws FileNotFoundException {
-
-        String inputFilePath = "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\RefrenceCode";
-        List<CompilationUnit> compilationUnits = new CompilationUnits(inputFilePath).get();
-
-        // Apply the AMC mutation operator
-        applyPMD(compilationUnits);
-    }
-    
 }
