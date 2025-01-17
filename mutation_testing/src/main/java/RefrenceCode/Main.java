@@ -2,18 +2,20 @@ package RefrenceCode;
 
 // Main.java
 public class Main {
+    S siblingObj;
     public static void main(String[] args) {
         // PNC Example
         P parentRef = new P(); // Parent reference to a Child object
         parentRef.display(); // Polymorphic behavior
 
         // PMD Example
-        P parentObj = new C();
+        Main instance = new Main();
+        instance.siblingObj = new S();
+        P parentObj = new P();
         C childObj = new C();
-        S siblingObj = new S();
 
         // PRV Example
-        parentRef = siblingObj; // Reassigning Parent reference to Sibling object
+        parentRef = instance.siblingObj; // Reassigning Parent reference to Sibling object
 
         // PPD Example
         someMethod(parentObj);
