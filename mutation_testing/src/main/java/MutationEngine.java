@@ -1,5 +1,6 @@
 import com.github.javaparser.ast.CompilationUnit;
 import operators.encapsulation.AMC;
+import operators.inheritance.IHD;
 import operators.inheritance.IHI;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
@@ -26,6 +27,9 @@ public class MutationEngine {
                     break;
                 case "IHI":
                     IHI.applyIHI(compilationUnits, "mutants/Example_IHI.java");
+                    break;
+                case "IHD":
+                    IHD.applyIHD(compilationUnits, "mutants/Example_IHD.java");
                     break;
                 case "PNC":
                     PNC.applyPNC(compilationUnits);
