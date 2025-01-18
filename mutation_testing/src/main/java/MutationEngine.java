@@ -24,14 +24,13 @@ public class MutationEngine {
             // Create mutants based on the operator
             switch (operator.trim().toUpperCase()) {
                 case "AMC":
-                    AMC.applyAMC(this.originalFile.toString(), "mutants/Example_AMC.java");
-                    // Call the AMC mutation operator
+                    AMC.applyAMC(compilationUnits);
                     break;
                 case "IHI":
-                    IHI.applyIHI(compilationUnits, "mutants/Example_IHI.java");
+                    IHI.applyIHI(compilationUnits);
                     break;
                 case "IHD":
-                    IHD.applyIHD(compilationUnits, "mutants/Example_IHD.java");
+                    IHD.applyIHD(compilationUnits);
                     break;
                 case "IOD":
                     IOD.applyIOD(compilationUnits, "mutants/");

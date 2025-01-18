@@ -1,9 +1,8 @@
 package IHIReferenceCode;
 
 public class Child extends Parent {
+
     public String name = "Child";
-    public int age = 30;
-    public String age2 = "sdfgh";
 
     @Override
     public void greet() {
@@ -14,4 +13,6 @@ public class Child extends Parent {
         System.out.println("Child name: " + name);
         displayAge();
     }
+
+    public int age = 87;
 }

@@ -5,20 +5,22 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import utils.MutantSaver;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IHD {
 
     /**
      * Apply the IHD mutation operator.
+     * Generates one mutant for each field in the child class that hides a field from the parent class.
      *
      * @param compilationUnits List of CompilationUnits representing the source code.
-     * @param outputFilePath   Path to save the mutated child class.
      */
-    public static void applyIHD(List<CompilationUnit> compilationUnits, String outputFilePath) {
+    public static void applyIHD(List<CompilationUnit> compilationUnits) {
+        AtomicInteger mutantIndex = new AtomicInteger(1);
+
         // Maps to store parent-child relationships
         Map<ClassOrInterfaceType, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
@@ -48,32 +50,40 @@ public class IHD {
                 for (ClassOrInterfaceDeclaration childClass : childClasses) {
                     List<FieldDeclaration> childFields = childClass.findAll(FieldDeclaration.class);
 
-                    // Iterate through fields in the child class
-                    for (FieldDeclaration childField : new ArrayList<>(childFields)) { // Avoid concurrent modification
+                    // Generate mutants for each hiding field
+                    for (FieldDeclaration childField : childFields) {
                         for (VariableDeclarator childVariable : childField.getVariables()) {
                             String childFieldName = childVariable.getNameAsString();
 
                             // Check if the field hides a field from the parent class
-                            if (parentFields.stream()
+                            boolean isHidingField = parentFields.stream()
                                     .flatMap(parentField -> parentField.getVariables().stream())
-                                    .anyMatch(parentVariable -> parentVariable.getNameAsString().equals(childFieldName))) {
+                                    .anyMatch(parentVariable -> parentVariable.getNameAsString().equals(childFieldName));
 
-                                // Remove the field
-                                childField.remove();
+                            if (isHidingField) {
+                                // Clone the child class for mutation
+                                CompilationUnit clonedCU = childClass.findCompilationUnit().orElseThrow().clone();
+                                ClassOrInterfaceDeclaration clonedChildClass = clonedCU.findFirst(ClassOrInterfaceDeclaration.class).orElseThrow();
 
-                                System.out.println("Commented and removed field '" + childFieldName + "' in child class '" + childClass.getNameAsString() + "'");
+                                // Remove the specific hiding field in the clone
+                                clonedChildClass.findAll(FieldDeclaration.class).stream()
+                                        .filter(f -> f.getVariables().stream()
+                                                .anyMatch(v -> v.getNameAsString().equals(childFieldName)))
+                                        .forEach(FieldDeclaration::remove);
 
-                                // Save only the mutated child class to the output file
-                                try (FileWriter writer = new FileWriter(outputFilePath)) {
-                                    writer.write(childClass.toString());
-                                } catch (IOException e) {
-                                    System.err.println("Error saving mutated code: " + e.getMessage());
-                                }
+                                System.out.println("Removed hiding field '" + childFieldName + "' in child class '" + childClass.getNameAsString() + "'");
+
+                                // Save the mutated child class
+                                String mutantPath = "mutants\\IHD\\mutation" + mutantIndex;
+                                MutantSaver.save(clonedCU, mutantPath);
+                                mutantIndex.getAndIncrement();
                             }
                         }
                     }
                 }
             }
         });
+
+        System.out.println("IHD mutation applied. Mutants saved to directory: mutants\\IHD\\");
     }
 }
