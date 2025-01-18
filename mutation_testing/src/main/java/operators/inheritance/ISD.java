@@ -3,7 +3,7 @@ package operators.inheritance;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ISD {
 
     /**
-     * Apply the ISI mutation operator step by step.
+     * Apply the ISD mutation operator step by step.
      *
      * @param compilationUnits List of CompilationUnits representing the source code.
      * @param outputFolderPath Path to save the resulting folders for each mutation step.
@@ -56,7 +56,6 @@ public class ISD {
                 if (!parentMethods.isEmpty()) {
                     for (MethodDeclaration methodToOverShadow : parentMethods) {
                         String methodName = methodToOverShadow.getNameAsString();
-                        String methodReturnType = methodToOverShadow.getTypeAsString();
 
                         for (ClassOrInterfaceDeclaration childClass : childClasses) {
                             // Create a copy of the original compilation units to avoid modifying other parts
@@ -68,38 +67,31 @@ public class ISD {
                                     .findFirst()
                                     .orElseThrow(() -> new RuntimeException("Child class not found in cloned units."));
 
-                            // Check for conditions before removing and overriding methods
+                            // Check for conditions before replacing `super.` calls
                             currentChild.getMethods().stream()
                                     .filter(method -> method.getNameAsString().equals(methodName))
                                     .filter(method -> method.getBody().isPresent()
                                             && method.getBody().get().toString().contains("return super." + methodName + "();"))
                                     .forEach(method -> {
-                                        boolean deletionSuccessful = currentChild.remove(method);
+                                        method.getBody().ifPresent(body -> {
+                                            body.findAll(MethodCallExpr.class).forEach(callExpr -> {
+                                                if (callExpr.getScope().isPresent() && callExpr.getScope().get().isSuperExpr()) {
+                                                    callExpr.setScope(null); // Remove `super.`
+                                                }
+                                            });
+                                        });
 
-                                        if (deletionSuccessful) {
-                                            MethodDeclaration overriddenMethod = new MethodDeclaration();
-                                            overriddenMethod.setName(methodName);
-                                            overriddenMethod.setType(methodReturnType);
-                                            overriddenMethod.addModifier(Modifier.Keyword.PUBLIC);
+                                        System.out.println("Modified method '" + method.getNameAsString()
+                                                + "' in child class '" + currentChild.getNameAsString() + "'.");
 
-                                            methodToOverShadow.getParameters().forEach(overriddenMethod::addParameter);
-
-                                            overriddenMethod.setBody(new com.github.javaparser.ast.stmt.BlockStmt()
-                                                    .addStatement("return " + methodName + ";"));
-
-                                            currentChild.addMember(overriddenMethod);
-
-                                            System.out.println("Deleted shadowing method '" + methodName + "' in child class '" + currentChild.getNameAsString() + "'");
-
-                                            // Create a separate folder for this mutation
-                                            File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
-                                            if (!mutationFolder.exists()) {
-                                                mutationFolder.mkdirs();
-                                            }
-
-                                            // Save all compilation units to the folder
-                                            saveCompilationUnits(clonedUnits, mutationFolder);
+                                        // Create a separate folder for this mutation
+                                        File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
+                                        if (!mutationFolder.exists()) {
+                                            mutationFolder.mkdirs();
                                         }
+
+                                        // Save all compilation units to the folder
+                                        saveCompilationUnits(clonedUnits, mutationFolder);
                                     });
                         }
                     }
