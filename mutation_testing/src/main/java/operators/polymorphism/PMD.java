@@ -9,6 +9,7 @@ import utils.MutantSaver;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PMD {
     public static void applyPMD(List<CompilationUnit> compilationUnits) {
@@ -29,6 +30,8 @@ public class PMD {
                 });
             }
         }
+
+        AtomicInteger i = new AtomicInteger();
 
         // Iterate over all CompilationUnits to look for member variable declarations with child class type
         for (CompilationUnit cu : compilationUnits) {
@@ -53,7 +56,8 @@ public class PMD {
                                 childType.setName(parentType.getNameAsString());
 
                                 // Save the mutated code for the CompilationUnit where the mutation occurred
-                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PMD");
+                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PMD\\"+i);
+                                i.getAndIncrement();
                             }
                         } else {
                             // Handle primitive types or other non-ClassOrInterfaceType cases

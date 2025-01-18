@@ -6,17 +6,15 @@ import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import utils.MutantSaver;
+
 import java.util.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.Optional;
 
 
 public class PNC {
     public static void applyPNC(List<CompilationUnit> compilationUnits) {
-        Random random = new Random();
-
         // Maps to store parent-child relationships
         Map<ClassOrInterfaceType, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
@@ -53,27 +51,45 @@ public class PNC {
             return;
         }
 
-        // Randomly select one ObjectCreationExpr from the list
-        ObjectCreationExpr selectedMutation = allParentCreations.get(random.nextInt(allParentCreations.size()));
+        int i = 0;
 
-        // Get the parent class of the selected mutation
-        ClassOrInterfaceType parentClassName = selectedMutation.getType();
+// Iterate through all found ObjectCreationExpr to create mutants
+        for (ObjectCreationExpr sMutation : allParentCreations) {
 
-        // Check if we have a child class for the parent class
-        List<ClassOrInterfaceDeclaration> childClasses = parentChildMap.get(parentClassName);
-        if (childClasses != null && !childClasses.isEmpty()) {
-            // Randomly select a child class from the list of children
-            ClassOrInterfaceDeclaration selectedChildClass = childClasses.get(random.nextInt(childClasses.size()));
+            // Get the parent class of the selected mutation
+            ClassOrInterfaceType parentClassName = sMutation.getType();
 
-            // Change the type of the selected ObjectCreationExpr to the selected child class
-            selectedMutation.setType(selectedChildClass.getNameAsString());
+            // Check if we have a child class for the parent class
+            List<ClassOrInterfaceDeclaration> childClasses = parentChildMap.get(parentClassName);
+            if (childClasses != null && !childClasses.isEmpty()) {
+                for (ClassOrInterfaceDeclaration selectedChildClass : childClasses) {
 
-            // Save the mutated code for the CompilationUnit where the mutation occurred
-            Optional<Node> rootNode = Optional.ofNullable(selectedMutation.findRootNode());
-            if (rootNode.isPresent() && rootNode.get() instanceof CompilationUnit) {
-                CompilationUnit mutatedCU = (CompilationUnit) rootNode.get();
-                MutantSaver.save(mutatedCU, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\mutants\\Example_PNC");
+                    // Get the root CompilationUnit of the current mutation
+                    Node rootNode = sMutation.findRootNode();
+                    if (rootNode instanceof CompilationUnit) {
+                        CompilationUnit originalCU = (CompilationUnit) rootNode;
+
+                        // Clone the entire CompilationUnit
+                        CompilationUnit clonedCU = originalCU.clone();
+
+                        // Find the corresponding ObjectCreationExpr in the cloned CompilationUnit
+                        Optional<ObjectCreationExpr> clonedMutationOpt = clonedCU.findFirst(ObjectCreationExpr.class,
+                                expr -> expr.getRange().equals(sMutation.getRange())); // Match by position
+
+                        if (clonedMutationOpt.isPresent()) {
+                            ObjectCreationExpr clonedMutation = clonedMutationOpt.get();
+
+                            // Apply the mutation to the cloned ObjectCreationExpr
+                            clonedMutation.setType(selectedChildClass.getNameAsString());
+
+                            // Save the mutated CompilationUnit
+                            MutantSaver.save(clonedCU, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PNC\\" + i);
+                            i++;
+                        }
+                    }
+                }
             }
         }
+
     }
 }
