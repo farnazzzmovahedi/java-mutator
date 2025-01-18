@@ -31,7 +31,7 @@ public class PPD {
                 });
             }
         }
-        int i = 0;
+        int i = 1;
 
         // Step 2: Iterate over all methods and update parameter types
         for (CompilationUnit cu : compilationUnits) {
@@ -71,7 +71,7 @@ public class PPD {
 
                                     // Save the mutated code for the cloned CompilationUnit
                                     MutantSaver.save(clonedCU,
-                                            "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PPD\\" + i);
+                                            "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PPD\\mutation" + i);
                                     i++;
                                 }
                             }

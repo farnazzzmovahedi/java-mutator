@@ -51,9 +51,9 @@ public class PNC {
             return;
         }
 
-        int i = 0;
+        int i = 1;
 
-// Iterate through all found ObjectCreationExpr to create mutants
+        // Iterate through all found ObjectCreationExpr to create mutants
         for (ObjectCreationExpr sMutation : allParentCreations) {
 
             // Get the parent class of the selected mutation
@@ -83,7 +83,7 @@ public class PNC {
                             clonedMutation.setType(selectedChildClass.getNameAsString());
 
                             // Save the mutated CompilationUnit
-                            MutantSaver.save(clonedCU, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PNC\\" + i);
+                            MutantSaver.save(clonedCU, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PNC\\mutation" + i);
                             i++;
                         }
                     }

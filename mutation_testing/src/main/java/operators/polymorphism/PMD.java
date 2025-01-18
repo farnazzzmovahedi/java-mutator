@@ -31,7 +31,7 @@ public class PMD {
             }
         }
 
-        AtomicInteger i = new AtomicInteger();
+        AtomicInteger i = new AtomicInteger(1);
 
         // Iterate over all CompilationUnits to look for member variable declarations with child class type
         for (CompilationUnit cu : compilationUnits) {
@@ -56,7 +56,7 @@ public class PMD {
                                 childType.setName(parentType.getNameAsString());
 
                                 // Save the mutated code for the CompilationUnit where the mutation occurred
-                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PMD\\"+i);
+                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PMD\\mutation"+i);
                                 i.getAndIncrement();
                             }
                         } else {
