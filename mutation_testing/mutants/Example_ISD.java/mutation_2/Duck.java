@@ -1,3 +1,5 @@
+package ISDRefrencedCode;
+
 public class Duck extends Animal {
 
     String Sound = "Quack Quack";
@@ -6,17 +8,24 @@ public class Duck extends Animal {
 
     String Eat = "Duck Eats";
 
+    String Name = "Duck";
+
     @Override
     public String Sound() {
-        return Sound;
+        return super.Sound();
     }
 
     @Override
     public String Eat() {
-        return Eat;
+        return super.Eat();
+    }
+
+    @Override
+    public String Name() {
+        return Name;
     }
 
     public String Walk() {
-        return super.Walk();
+        return Walk;
     }
 }

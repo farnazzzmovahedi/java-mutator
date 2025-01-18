@@ -1,3 +1,5 @@
+package ISIRefrencedCode;
+
 public class Animal {
 
     String Sound = "Animal Sound";
@@ -5,6 +7,8 @@ public class Animal {
     String Walk = "Animal Walks";
 
     String Eat = "Animal Eats";
+
+    String Name = "Animal Name";
 
     public String Sound() {
         return Sound;
@@ -16,5 +20,9 @@ public class Animal {
 
     public String Eat() {
         return Eat;
+    }
+
+    public String Name() {
+        return Name;
     }
 }
