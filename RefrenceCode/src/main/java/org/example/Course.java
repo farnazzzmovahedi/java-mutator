@@ -1,10 +1,14 @@
 package org.example;
 
 public class Course {
+
     private int courseId;
+
     private String courseName;
+
     private int credits;
-    private Professor professor;
+
+    private Person professor;
 
     public Course(int courseId, String courseName, int credits, Professor professor) {
         this.courseId = courseId;
