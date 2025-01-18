@@ -1,94 +1,118 @@
 package operators.JavaSpecific;
 
-import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
-import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.StaticJavaParser;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * This class performs mutation testing by modifying "this." references in Java methods.
- */
 public class JTD {
 
-    private static final String INPUT_FILE_PATH = "C:\\Users\\Shojaei\\Documents\\my project\\aliminia\\py-mutator\\mutation_testing\\src\\main\\java\\JTDRefrencedCode\\Person.java";
-
-    public static void applyJTD(String outputFolderPath) {
-        CompilationUnit compilationUnit = parseSourceFile(INPUT_FILE_PATH);
-        if (compilationUnit == null) {
-            System.err.println("Failed to parse the input file.");
-            return;
-        }
-
+    /**
+     * Apply the JTD mutation operator step by step.
+     *
+     * @param compilationUnits  List of CompilationUnits representing the source code.
+     * @param outputFolderPath  Path to save the resulting folders for each mutation step.
+     */
+    public static void applyJTD(List<CompilationUnit> compilationUnits, String outputFolderPath) {
         AtomicInteger mutationIndex = new AtomicInteger(1);
 
-        // Iterate through all methods in the compilation unit
-        for (MethodDeclaration method : compilationUnit.findAll(MethodDeclaration.class)) {
-            if (hasThisReferences(method)) {
-                processMethodMutations(compilationUnit, method, outputFolderPath, mutationIndex);
+        for (CompilationUnit cu : compilationUnits) {
+            List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+            for (ClassOrInterfaceDeclaration clazz : classes) {
+                List<MethodDeclaration> methods = clazz.findAll(MethodDeclaration.class);
+
+                for (MethodDeclaration method : methods) {
+                    method.getBody().ifPresent(body -> {
+                        List<ThisExpr> thisReferences = body.findAll(ThisExpr.class);
+
+                        for (ThisExpr thisExpr : thisReferences) {
+                            List<CompilationUnit> clonedUnits = cloneCompilationUnits(compilationUnits);
+
+                            // Locate the cloned class
+                            ClassOrInterfaceDeclaration clonedClass = clonedUnits.stream()
+                                    .flatMap(unit -> unit.findAll(ClassOrInterfaceDeclaration.class).stream())
+                                    .filter(cl -> cl.getNameAsString().equals(clazz.getNameAsString()))
+                                    .findFirst()
+                                    .orElseThrow(() -> new RuntimeException("Class not found in cloned units."));
+
+                            // Locate the cloned method
+                            MethodDeclaration clonedMethod = clonedClass.findAll(MethodDeclaration.class).stream()
+                                    .filter(md -> md.getSignature().equals(method.getSignature()))
+                                    .findFirst()
+                                    .orElseThrow(() -> new RuntimeException("Method not found in cloned class."));
+
+                            // Modify the method body in the cloned class
+                            clonedMethod.getBody().ifPresent(clonedBody -> {
+                                clonedBody.findAll(ThisExpr.class).forEach(expr -> {
+                                    expr.getParentNode().ifPresent(parentNode -> {
+                                        if (parentNode instanceof NameExpr || parentNode instanceof FieldAccessExpr) {
+                                            String originalStatement = parentNode.toString();
+                                            String modifiedStatement = originalStatement.replace("this.", "");
+                                            parentNode.replace(StaticJavaParser.parseExpression(modifiedStatement));
+                                        }
+                                    });
+
+                                    System.out.println("Replaced 'this.' in method '" + clonedMethod.getNameAsString()
+                                            + "' in class '" + clonedClass.getNameAsString() + "'.");
+                                });
+                            });
+
+                            // Create a folder for this mutation
+                            File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
+                            if (!mutationFolder.exists()) {
+                                mutationFolder.mkdirs();
+                            }
+
+                            // Save all modified compilation units to the folder
+                            saveCompilationUnits(clonedUnits, mutationFolder);
+                        }
+                    });
+                }
             }
         }
     }
 
-    private static CompilationUnit parseSourceFile(String filePath) {
-        try {
-            return StaticJavaParser.parse(new File(filePath));
-        } catch (IOException e) {
-            System.err.println("Error reading file: " + e.getMessage());
-            return null;
+    /**
+     * Clone the list of CompilationUnits.
+     *
+     * @param compilationUnits  List of CompilationUnits to be cloned.
+     * @return List of cloned CompilationUnits.
+     */
+    private static List<CompilationUnit> cloneCompilationUnits(List<CompilationUnit> compilationUnits) {
+        List<CompilationUnit> clones = new ArrayList<>();
+        for (CompilationUnit cu : compilationUnits) {
+            clones.add(cu.clone());
         }
+        return clones;
     }
 
-    private static boolean hasThisReferences(MethodDeclaration method) {
-        return method.findAll(ThisExpr.class).size() > 0; // Check for "this." references using the AST
-    }
-
-    private static void processMethodMutations(CompilationUnit compilationUnit, MethodDeclaration method,
-                                               String outputFolderPath, AtomicInteger mutationIndex) {
-        method.getBody().ifPresent(body -> {
-            // Perform mutations on all "this." references in the method body
-            method.findAll(ThisExpr.class).forEach(thisExpr -> {
-                // Perform the mutation by removing "this."
-                Node targetNode = thisExpr.getParentNode().orElseThrow().clone();
-                if (!(targetNode instanceof Expression)) {
-                    throw new IllegalStateException("Parent node is not an Expression");
-                }
-                Expression target = (Expression) targetNode;
-                thisExpr.replace(target);
-
-                // Save the mutated version
-                File mutationFolder = createMutationFolder(outputFolderPath, mutationIndex.getAndIncrement());
-                writeCompilationUnitToFile(compilationUnit, mutationFolder);
-            });
-        });
-    }
-
-    private static File createMutationFolder(String outputFolderPath, int mutationIndex) {
-        File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex);
-        if (!mutationFolder.exists() && !mutationFolder.mkdirs()) {
-            throw new RuntimeException("Failed to create mutation folder: " + mutationFolder.getAbsolutePath());
-        }
-        return mutationFolder;
-    }
-
-    private static void writeCompilationUnitToFile(CompilationUnit cu, File folder) {
-        String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
-                .map(ClassOrInterfaceDeclaration::getNameAsString)
-                .orElse("UnknownClass");
-
-        File outputFile = new File(folder, className + ".java");
-        try (FileWriter writer = new FileWriter(outputFile)) {
-            writer.write(cu.toString());
-        } catch (IOException e) {
-            System.err.println("Error saving class to file: " + e.getMessage());
+    /**
+     * Save a list of CompilationUnits to the specified folder.
+     *
+     * @param compilationUnits  List of CompilationUnits to be saved.
+     * @param folder            Folder where the CompilationUnits will be saved.
+     */
+    private static void saveCompilationUnits(List<CompilationUnit> compilationUnits, File folder) {
+        for (CompilationUnit cu : compilationUnits) {
+            String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
+                    .map(ClassOrInterfaceDeclaration::getNameAsString)
+                    .orElse("UnknownClass");
+            try (FileWriter writer = new FileWriter(new File(folder, className + ".java"))) {
+                writer.write(cu.toString());
+            } catch (IOException e) {
+                System.err.println("Error saving class " + className + ": " + e.getMessage());
+            }
         }
     }
 }
