@@ -7,9 +7,11 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import utils.MutantSaver;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 public class PPD {
@@ -29,6 +31,7 @@ public class PPD {
                 });
             }
         }
+        int i = 0;
 
         // Step 2: Iterate over all methods and update parameter types
         for (CompilationUnit cu : compilationUnits) {
@@ -47,17 +50,35 @@ public class PPD {
                         if (parentToChildMap.containsKey(parentType)) {
                             ClassOrInterfaceType childType = parentToChildMap.get(parentType);
 
-                            // Change the parameter type to the child class type
-                            parameter.setType(childType);
+                            // Clone the CompilationUnit to create an independent mutation
+                            CompilationUnit clonedCU = cu.clone();
 
-                            // Save the mutated code for the CompilationUnit where the mutation occurred
-                            MutantSaver.save(cu,  "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\src\\main\\java\\mutants\\Example_PPD");
+                            // Find the corresponding method in the cloned CompilationUnit
+                            Optional<MethodDeclaration> clonedMethodOpt = clonedCU.findFirst(MethodDeclaration.class,
+                                    m -> m.getRange().equals(method.getRange()));
 
+                            if (clonedMethodOpt.isPresent()) {
+                                MethodDeclaration clonedMethod = clonedMethodOpt.get();
+
+                                // Find the corresponding parameter in the cloned method
+                                Optional<Parameter> clonedParamOpt = clonedMethod.getParameterByName(parameter.getNameAsString());
+
+                                if (clonedParamOpt.isPresent()) {
+                                    Parameter clonedParam = clonedParamOpt.get();
+
+                                    // Change the parameter type to the child class type
+                                    clonedParam.setType(childType);
+
+                                    // Save the mutated code for the cloned CompilationUnit
+                                    MutantSaver.save(clonedCU,
+                                            "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\Example_PPD\\" + i);
+                                    i++;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-
 }
