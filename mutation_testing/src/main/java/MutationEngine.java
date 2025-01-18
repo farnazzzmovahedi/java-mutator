@@ -6,6 +6,7 @@ import operators.javaSpecific.JSD;
 import operators.javaSpecific.JSI;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
+import operators.polymorphism.PPD;
 
 import java.io.File;
 import java.util.List;
@@ -40,6 +41,9 @@ public class MutationEngine {
                     break;
                 case "PMD":
                     PMD.applyPMD(compilationUnits);
+                    break;
+                case "PPD":
+                    PPD.applyPPD(compilationUnits);
                     break;
                 case "ISI":
                     ISI.applyISI(compilationUnits, "mutants/Example_ISI.java");
