@@ -8,7 +8,7 @@ import java.util.List;
 
 public class MutantTester {
 
-    private static final String PROJECT_DIR = "C:\\github-projects\\java-mutator\\RefrenceCode";// Your project directory
+    private static final String PROJECT_DIR = "..\\RefrenceCode";// Your project directory
     private static final String SRC_DIR = PROJECT_DIR + "\\src\\main\\java\\org\\example\\"; // Source directory
     private static final String MUTANT_DIR = "mutants"; // Path to mutants directory
     private static final String BACKUP_DIR = PROJECT_DIR + "\\backup";
@@ -26,7 +26,7 @@ public class MutantTester {
                 String className = extractClassName(mutant);
                 System.out.println("Testing mutant for class: " + className);
 
-                System.out.println("BEGA RAFTAM");
+//                System.out.println("BEGA RAFTAM");
                 // Replace the original class with the mutant
                 replaceClassWithMutant(mutant, className);
 
@@ -36,6 +36,7 @@ public class MutantTester {
                     System.err.println("Failed to compile mutant: " + mutant.getPath());
                     continue;
                 }
+                System.out.println("Compile Successful");
 
                 // Run tests
 //                boolean testsPassed = runTests();
@@ -120,7 +121,7 @@ public class MutantTester {
     }
 
     private static boolean compileProject() throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("C:\\Users\\iCFixer.ir\\Downloads\\apache-maven-3.9.9\\bin\\mvn.cmd", "clean", "compile");
+        ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "clean", "compile");
         System.out.println("Executing command: " + String.join(" ", pb.command()));
         pb.directory(new File(PROJECT_DIR));
         pb.redirectErrorStream(true);
@@ -130,7 +131,7 @@ public class MutantTester {
     }
 
     private static boolean runTests() throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("C:\\Users\\iCFixer.ir\\Downloads\\apache-maven-3.9.9\\bin\\mvn.cmd", "test");
+        ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "test");
         pb.directory(new File(PROJECT_DIR));
         pb.redirectErrorStream(true);
         Process process = pb.start();
@@ -161,7 +162,7 @@ public class MutantTester {
         }
 
         for (File file : backupFiles) {
-            System.out.println("BEGA");
+//            System.out.println("BEGA");
             Path backupPath = file.toPath();
             Path originalPath = srcDir.toPath().resolve(file.getName());
             Files.copy(backupPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
