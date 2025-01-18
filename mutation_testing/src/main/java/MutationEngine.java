@@ -1,13 +1,11 @@
 import com.github.javaparser.ast.CompilationUnit;
-import operators.JavaSpecific.JTD;
+import operators.javaSpecific.JTD;
 import operators.encapsulation.AMC;
 import operators.inheritance.*;
 import operators.javaSpecific.JSD;
 import operators.javaSpecific.JSI;
-import operators.inheritance.*;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
-import utils.CompilationUnits;
 
 import java.io.File;
 import java.util.List;
