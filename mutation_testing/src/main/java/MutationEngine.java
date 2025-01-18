@@ -2,6 +2,9 @@ import com.github.javaparser.ast.CompilationUnit;
 import operators.JavaSpecific.JTD;
 import operators.encapsulation.AMC;
 import operators.inheritance.*;
+import operators.javaSpecific.JSD;
+import operators.javaSpecific.JSI;
+import operators.inheritance.*;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
 import utils.CompilationUnits;
@@ -31,6 +34,9 @@ public class MutationEngine {
                 case "IHD":
                     IHD.applyIHD(compilationUnits, "mutants/Example_IHD.java");
                     break;
+                case "IOD":
+                    IOD.applyIOD(compilationUnits, "mutants/");
+                    break;
                 case "PNC":
                     PNC.applyPNC(compilationUnits);
                     break;
@@ -42,6 +48,12 @@ public class MutationEngine {
                     break;
                 case "ISD":
                     ISD.applyISD(compilationUnits, "mutants/Example_ISD.java");
+                    break;
+                case "JSI":
+                    JSI.applyJSI(compilationUnits, "mutants/");
+                    break;
+                case "JSD":
+                    JSD.applyJSD(compilationUnits, "mutants/");
                     break;
                 case "JTD":
                     JTD.applyJTD( "mutants/Example_JTD.java");
