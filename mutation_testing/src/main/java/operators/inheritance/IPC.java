@@ -18,9 +18,8 @@ public class IPC {
      * Apply the IPC mutation operator step by step.
      *
      * @param compilationUnits List of CompilationUnits representing the source code.
-     * @param outputFolderPath Path to save the resulting folders for each mutation step.
      */
-    public static void applyIPC(List<CompilationUnit> compilationUnits, String outputFolderPath) {
+    public static void applyIPC(List<CompilationUnit> compilationUnits) {
         // Maps to store parent-child relationships
         Map<String, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
@@ -70,6 +69,8 @@ public class IPC {
                                     constructor.getDeclarationAsString(false, false, false) +
                                     "' of class '" + currentChild.getNameAsString() + "'.");
 
+                            String outputFolderPath = "mutants\\IPC";
+
                             // Save the mutated version
                             File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
                             if (!mutationFolder.exists()) {
@@ -101,14 +102,25 @@ public class IPC {
      */
     private static void saveCompilationUnits(List<CompilationUnit> compilationUnits, File folder) {
         for (CompilationUnit cu : compilationUnits) {
+            // Find the class name
             String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
                     .map(ClassOrInterfaceDeclaration::getNameAsString)
                     .orElse("UnknownClass");
-            try (FileWriter writer = new FileWriter(new File(folder, className + ".java"))) {
-                writer.write(cu.toString());
-            } catch (IOException e) {
-                System.err.println("Error saving class " + className + ": " + e.getMessage());
+
+            // Check if the class has a parent
+            boolean hasParentClass = cu.findFirst(ClassOrInterfaceDeclaration.class)
+                    .map(cls -> !cls.getExtendedTypes().isEmpty())
+                    .orElse(false);
+
+            // If the class does not have a parent, write it to a file
+            if (hasParentClass) {
+                try (FileWriter writer = new FileWriter(new File(folder, "Mutant" + className + ".java"))) {
+                    writer.write(cu.toString());
+                } catch (IOException e) {
+                    System.err.println("Error saving class " + className + ": " + e.getMessage());
+                }
             }
         }
     }
+
 }

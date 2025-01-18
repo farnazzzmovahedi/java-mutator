@@ -4,39 +4,35 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import utils.MutantSaver;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ISI {
 
-    /**
-     * Apply the ISI mutation operator step by step.
-     *
-     * @param compilationUnits List of CompilationUnits representing the source code.
-     * @param outputFolderPath Path to save the resulting folders for each mutation step.
-     */
-    public static void applyISI(List<CompilationUnit> compilationUnits, String outputFolderPath) {
+    public static void applyISI(List<CompilationUnit> compilationUnits) {
         // Maps to store parent-child relationships
         Map<String, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
         // Identify parent-child relationships dynamically
         for (CompilationUnit cu : compilationUnits) {
+            // Find all classes in the current CompilationUnit
             List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
             for (ClassOrInterfaceDeclaration clazz : classes) {
+                // Map parent classes to child classes
                 clazz.getExtendedTypes().forEach(parent -> {
                     parentChildMap.computeIfAbsent(parent.getNameAsString(), k -> new ArrayList<>()).add(clazz);
                 });
             }
         }
 
-        AtomicInteger mutationIndex = new AtomicInteger(1);
+        // List to store parent-child shadowing opportunities
+        List<MethodShadowingMutation> shadowingMutations = new ArrayList<>();
 
-        // Process parent-child relationships
+        // Identify shadowing opportunities
         for (Map.Entry<String, List<ClassOrInterfaceDeclaration>> entry : parentChildMap.entrySet()) {
             String parentTypeName = entry.getKey();
             List<ClassOrInterfaceDeclaration> childClasses = entry.getValue();
@@ -44,7 +40,7 @@ public class ISI {
             // Find the parent class
             Optional<ClassOrInterfaceDeclaration> parentClassOpt = compilationUnits.stream()
                     .flatMap(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).stream())
-                    .filter(clazz -> clazz.getNameAsString().equals(parentTypeName))
+                    .filter(cls -> cls.getNameAsString().equals(parentTypeName))
                     .findFirst();
 
             if (parentClassOpt.isPresent()) {
@@ -53,86 +49,61 @@ public class ISI {
                 // Retrieve all methods declared in the parent class
                 List<MethodDeclaration> parentMethods = parentClass.findAll(MethodDeclaration.class);
 
-                if (!parentMethods.isEmpty()) {
-                    for (MethodDeclaration methodToShadow : parentMethods) {
-                        String methodName = methodToShadow.getNameAsString();
-                        String methodReturnType = methodToShadow.getTypeAsString();
-
-                        for (ClassOrInterfaceDeclaration childClass : childClasses) {
-                            // Create a copy of the original compilation units to avoid modifying other parts
-                            List<CompilationUnit> clonedUnits = cloneCompilationUnits(compilationUnits);
-
-                            ClassOrInterfaceDeclaration currentChild = clonedUnits.stream()
-                                    .flatMap(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).stream())
-                                    .filter(clazz -> clazz.getNameAsString().equals(childClass.getNameAsString()))
-                                    .findFirst()
-                                    .orElseThrow(() -> new RuntimeException("Child class not found in cloned units."));
-
-                            // Check for conditions before removing and overriding methods
-                            currentChild.getMethods().stream()
-                                    .filter(method -> method.getNameAsString().equals(methodName))
-                                    .filter(method -> method.getBody().isPresent()
-                                            && method.getBody().get().toString().contains("return")
-                                            && !method.getBody().get().toString().contains("return super." + methodName + "()"))
-                                    .forEach(method -> {
-                                        boolean deletionSuccessful = currentChild.remove(method);
-
-                                        if (deletionSuccessful) {
-                                            MethodDeclaration overriddenMethod = new MethodDeclaration();
-                                            overriddenMethod.setName(methodName);
-                                            overriddenMethod.setType(methodReturnType);
-                                            overriddenMethod.addModifier(Modifier.Keyword.PUBLIC);
-
-                                            methodToShadow.getParameters().forEach(overriddenMethod::addParameter);
-
-                                            overriddenMethod.setBody(new com.github.javaparser.ast.stmt.BlockStmt()
-                                                    .addStatement("return super." + methodName + "();"));
-
-                                            currentChild.addMember(overriddenMethod);
-
-                                            System.out.println("Added shadowing method '" + methodName + "' in child class '" + currentChild.getNameAsString() + "'");
-
-                                            // Create a separate folder for this mutation
-                                            File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
-                                            if (!mutationFolder.exists()) {
-                                                mutationFolder.mkdirs();
-                                            }
-
-                                            // Save all compilation units to the folder
-                                            saveCompilationUnits(clonedUnits, mutationFolder);
-                                        }
-                                    });
-                        }
+                // Save shadowing opportunities for child classes
+                for (ClassOrInterfaceDeclaration childClass : childClasses) {
+                    for (MethodDeclaration method : parentMethods) {
+                        shadowingMutations.add(new MethodShadowingMutation(childClass, method));
                     }
+                }
+            }
+        }
+
+        // Apply mutations to each shadowing opportunity
+        AtomicInteger mutationIndex = new AtomicInteger(1);
+        for (MethodShadowingMutation mutation : shadowingMutations) {
+            // Clone the entire Compilation Unit to preserve the original data
+            CompilationUnit originalCU = mutation.childClass.findCompilationUnit()
+                    .orElseThrow(() -> new IllegalStateException("Child class is not contained in a CompilationUnit."));
+            CompilationUnit clonedCU = originalCU.clone();
+
+            // Find the cloned version of the child class in the cloned CompilationUnit
+            Optional<ClassOrInterfaceDeclaration> clonedChildOpt = clonedCU.findFirst(ClassOrInterfaceDeclaration.class,
+                    cls -> cls.getNameAsString().equals(mutation.childClass.getNameAsString()));
+
+            if (clonedChildOpt.isPresent()) {
+                ClassOrInterfaceDeclaration clonedChild = clonedChildOpt.get();
+
+                // Check if the child class already overrides the parent method
+                boolean methodOverridden = clonedChild.getMethods().stream()
+                        .anyMatch(method -> method.getNameAsString().equals(mutation.parentMethod.getNameAsString()) &&
+                                method.getBody().isPresent() &&
+                                method.getBody().get().toString().contains("super." + mutation.parentMethod.getNameAsString() + "()"));
+
+                // If not overridden, add shadowing implementation
+                if (!methodOverridden) {
+                    MethodDeclaration overriddenMethod = mutation.parentMethod.clone();
+                    overriddenMethod.setBody(new BlockStmt().addStatement("return super." + mutation.parentMethod.getNameAsString() + "();"));
+                    overriddenMethod.setModifiers(Modifier.Keyword.PUBLIC);
+
+                    clonedChild.addMember(overriddenMethod);
+
+                    // Save the mutated CompilationUnit
+                    MutantSaver.save(clonedCU, "mutants\\ISI\\mutation" + mutationIndex.getAndIncrement());
                 }
             }
         }
     }
 
     /**
-     * Clone the list of CompilationUnits.
+     * Helper class to store method shadowing mutation details.
      */
-    private static List<CompilationUnit> cloneCompilationUnits(List<CompilationUnit> compilationUnits) {
-        List<CompilationUnit> clones = new ArrayList<>();
-        for (CompilationUnit cu : compilationUnits) {
-            clones.add(cu.clone());
-        }
-        return clones;
-    }
+    private static class MethodShadowingMutation {
+        ClassOrInterfaceDeclaration childClass;
+        MethodDeclaration parentMethod;
 
-    /**
-     * Save a list of CompilationUnits to the specified folder.
-     */
-    private static void saveCompilationUnits(List<CompilationUnit> compilationUnits, File folder) {
-        for (CompilationUnit cu : compilationUnits) {
-            String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
-                    .map(ClassOrInterfaceDeclaration::getNameAsString)
-                    .orElse("UnknownClass");
-            try (FileWriter writer = new FileWriter(new File(folder, className + ".java"))) {
-                writer.write(cu.toString());
-            } catch (IOException e) {
-                System.err.println("Error saving class " + className + ": " + e.getMessage());
-            }
+        public MethodShadowingMutation(ClassOrInterfaceDeclaration childClass, MethodDeclaration parentMethod) {
+            this.childClass = childClass;
+            this.parentMethod = parentMethod;
         }
     }
 }

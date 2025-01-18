@@ -45,10 +45,16 @@ public class MutationEngine {
                     PPD.applyPPD(compilationUnits);
                     break;
                 case "ISI":
-                    ISI.applyISI(compilationUnits, "mutants/Example_ISI.java");
+                    ISI.applyISI(compilationUnits);
                     break;
                 case "ISD":
-                    ISD.applyISD(compilationUnits, "mutants/Example_ISD.java");
+                    ISD.applyISD(compilationUnits);
+                    break;
+                case "JTD":
+                    JTD.applyJTD(compilationUnits, "");
+                    break;
+                case "IPC":
+                    IPC.applyIPC(compilationUnits);
                     break;
                 case "JSI":
                     JSI.applyJSI(compilationUnits, "mutants/");
@@ -56,12 +62,7 @@ public class MutationEngine {
                 case "JSD":
                     JSD.applyJSD(compilationUnits, "mutants/");
                     break;
-                case "JTD":
-                    JTD.applyJTD(compilationUnits, "mutants/Example_JTD.java");
-                    break;
-                case "IPC":
-                    IPC.applyIPC(compilationUnits, "mutants/Example_IPC.java");
-                    break;
+
                 // Add more cases for other operators
                 default:
                     System.out.println("Unknown operator: " + operator);

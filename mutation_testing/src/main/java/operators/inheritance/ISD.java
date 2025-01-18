@@ -1,42 +1,41 @@
 package operators.inheritance;
 
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import utils.MutantSaver;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ISD {
 
-    /**
-     * Apply the ISD mutation operator step by step.
-     *
-     * @param compilationUnits List of CompilationUnits representing the source code.
-     * @param outputFolderPath Path to save the resulting folders for each mutation step.
-     */
-    public static void applyISD(List<CompilationUnit> compilationUnits, String outputFolderPath) {
+    public static void applyISD(List<CompilationUnit> compilationUnits) {
         // Maps to store parent-child relationships
         Map<String, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
         // Identify parent-child relationships dynamically
         for (CompilationUnit cu : compilationUnits) {
+            // Find all classes in the current CompilationUnit
             List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
             for (ClassOrInterfaceDeclaration clazz : classes) {
+                // Map parent classes to child classes
                 clazz.getExtendedTypes().forEach(parent -> {
                     parentChildMap.computeIfAbsent(parent.getNameAsString(), k -> new ArrayList<>()).add(clazz);
                 });
             }
         }
 
-        AtomicInteger mutationIndex = new AtomicInteger(1);
+        // List to store overriding opportunities
+        List<MethodOverridingMutation> overridingMutations = new ArrayList<>();
 
-        // Process parent-child relationships
+        // Identify `super` method calls
         for (Map.Entry<String, List<ClassOrInterfaceDeclaration>> entry : parentChildMap.entrySet()) {
             String parentTypeName = entry.getKey();
             List<ClassOrInterfaceDeclaration> childClasses = entry.getValue();
@@ -44,86 +43,103 @@ public class ISD {
             // Find the parent class
             Optional<ClassOrInterfaceDeclaration> parentClassOpt = compilationUnits.stream()
                     .flatMap(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).stream())
-                    .filter(clazz -> clazz.getNameAsString().equals(parentTypeName))
+                    .filter(cls -> cls.getNameAsString().equals(parentTypeName))
                     .findFirst();
 
             if (parentClassOpt.isPresent()) {
-                ClassOrInterfaceDeclaration parentClass = parentClassOpt.get();
-
-                // Retrieve all methods declared in the parent class
-                List<MethodDeclaration> parentMethods = parentClass.findAll(MethodDeclaration.class);
-
-                if (!parentMethods.isEmpty()) {
-                    for (MethodDeclaration methodToOverShadow : parentMethods) {
-                        String methodName = methodToOverShadow.getNameAsString();
-
-                        for (ClassOrInterfaceDeclaration childClass : childClasses) {
-                            // Create a copy of the original compilation units to avoid modifying other parts
-                            List<CompilationUnit> clonedUnits = cloneCompilationUnits(compilationUnits);
-
-                            ClassOrInterfaceDeclaration currentChild = clonedUnits.stream()
-                                    .flatMap(cu -> cu.findAll(ClassOrInterfaceDeclaration.class).stream())
-                                    .filter(clazz -> clazz.getNameAsString().equals(childClass.getNameAsString()))
-                                    .findFirst()
-                                    .orElseThrow(() -> new RuntimeException("Child class not found in cloned units."));
-
-                            // Check for conditions before replacing `super.` calls
-                            currentChild.getMethods().stream()
-                                    .filter(method -> method.getNameAsString().equals(methodName))
-                                    .filter(method -> method.getBody().isPresent()
-                                            && method.getBody().get().toString().contains("return super." + methodName + "();"))
-                                    .forEach(method -> {
-                                        method.getBody().ifPresent(body -> {
-                                            body.findAll(MethodCallExpr.class).forEach(callExpr -> {
-                                                if (callExpr.getScope().isPresent() && callExpr.getScope().get().isSuperExpr()) {
-                                                    callExpr.setScope(null); // Remove `super.`
-                                                }
-                                            });
-                                        });
-
-                                        System.out.println("Modified method '" + method.getNameAsString()
-                                                + "' in child class '" + currentChild.getNameAsString() + "'.");
-
-                                        // Create a separate folder for this mutation
-                                        File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
-                                        if (!mutationFolder.exists()) {
-                                            mutationFolder.mkdirs();
-                                        }
-
-                                        // Save all compilation units to the folder
-                                        saveCompilationUnits(clonedUnits, mutationFolder);
-                                    });
-                        }
-                    }
+                for (ClassOrInterfaceDeclaration childClass : childClasses) {
+                    // Look for methods in the child class and identify methods using `super`
+                    childClass.getMethods().stream()
+                            .filter(method -> method.getBody().isPresent() && methodContainsSuperCall(method, parentTypeName))
+                            .forEach(method -> overridingMutations.add(new MethodOverridingMutation(childClass, method)));
                 }
             }
         }
-    }
 
-    /**
-     * Clone the list of CompilationUnits.
-     */
-    private static List<CompilationUnit> cloneCompilationUnits(List<CompilationUnit> compilationUnits) {
-        List<CompilationUnit> clones = new ArrayList<>();
-        for (CompilationUnit cu : compilationUnits) {
-            clones.add(cu.clone());
-        }
-        return clones;
-    }
+        // Apply mutations to delete `super` method calls
+        AtomicInteger mutationIndex = new AtomicInteger(1);
+        for (MethodOverridingMutation mutation : overridingMutations) {
+            // Clone the entire Compilation Unit to preserve the original data
+            CompilationUnit originalCU = mutation.childClass.findCompilationUnit()
+                    .orElseThrow(() -> new IllegalStateException("Child class is not contained in a CompilationUnit."));
+            CompilationUnit clonedCU = originalCU.clone();
 
-    /**
-     * Save a list of CompilationUnits to the specified folder.
-     */
-    private static void saveCompilationUnits(List<CompilationUnit> compilationUnits, File folder) {
-        for (CompilationUnit cu : compilationUnits) {
-            String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
-                    .map(ClassOrInterfaceDeclaration::getNameAsString)
-                    .orElse("UnknownClass");
-            try (FileWriter writer = new FileWriter(new File(folder, className + ".java"))) {
-                writer.write(cu.toString());
-            } catch (IOException e) {
-                System.err.println("Error saving class " + className + ": " + e.getMessage());
+            // Find the cloned version of the child class in the cloned CompilationUnit
+            Optional<ClassOrInterfaceDeclaration> clonedChildOpt = clonedCU.findFirst(ClassOrInterfaceDeclaration.class,
+                    cls -> cls.getNameAsString().equals(mutation.childClass.getNameAsString()));
+
+            if (clonedChildOpt.isPresent()) {
+                ClassOrInterfaceDeclaration clonedChild = clonedChildOpt.get();
+
+                // Locate the cloned version of the overriding method and remove `super` calls
+                clonedChild.getMethods().stream()
+                        .filter(method -> method.getNameAsString().equals(mutation.method.getNameAsString()))
+                        .findFirst()
+                        .ifPresent(clonedMethod -> {
+                            removeSuperCalls(clonedMethod);
+                            // Save the mutated CompilationUnit
+                            MutantSaver.save(clonedCU, "mutants\\ISD\\mutation" + mutationIndex.getAndIncrement());
+                        });
             }
+        }
+    }
+
+    /**
+     * Helper method to check if a method contains a `super` call.
+     */
+    private static boolean methodContainsSuperCall(MethodDeclaration method, String parentTypeName) {
+        AtomicBoolean containsSuperCall = new AtomicBoolean(false);
+        method.getBody().ifPresent(body ->
+                body.accept(new VoidVisitorAdapter<Void>() {
+                    @Override
+                    public void visit(BlockStmt n, Void arg) {
+                        if (n.toString().contains("super.")) {
+                            containsSuperCall.set(true);
+                        }
+                        super.visit(n, arg);
+                    }
+                }, null));
+        return containsSuperCall.get();
+    }
+
+    /**
+     * Helper method to remove `super` calls from a method.
+     */
+    private static void removeSuperCalls(MethodDeclaration method) {
+        method.getBody().ifPresent(body ->
+                body.accept(new VoidVisitorAdapter<Void>() {
+                    @Override
+                    public void visit(BlockStmt n, Void arg) {
+                        for (int i = 0; i < n.getStatements().size(); i++) {
+                            Statement statement = n.getStatement(i);
+
+                            // Replace "super." and "()" in the statement
+                            String updatedStatement = statement.toString()
+                                    .replace("super.", "")  // Remove "super."
+                                    .replaceAll("\\(\\)", ""); // Remove "()"
+
+                            // Update the statement only if changes were made
+                            if (!updatedStatement.equals(statement.toString())) {
+                                n.setStatement(i, StaticJavaParser.parseStatement(updatedStatement));
+                            }
+                        }
+                        super.visit(n, arg);
+                    }
+                }, null));
+    }
+
+
+
+    /**
+     * Helper class to store overriding mutation details.
+     */
+    private static class MethodOverridingMutation {
+        ClassOrInterfaceDeclaration childClass;
+        MethodDeclaration method;
+
+        public MethodOverridingMutation(ClassOrInterfaceDeclaration childClass, MethodDeclaration method) {
+            this.childClass = childClass;
+            this.method = method;
         }
     }
 }
