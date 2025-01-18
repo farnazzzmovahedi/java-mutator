@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class University {
+    private static int staticId = 12;
     private String universityName;
     private List<Person> people;  // List can now store both students and professors
     private List<Course> courses;
@@ -34,5 +35,9 @@ public class University {
         for (Course course : courses) {
             course.displayCourseInfo();
         }
+    }
+
+    public static int getStaticId() {
+        return staticId;
     }
 }
