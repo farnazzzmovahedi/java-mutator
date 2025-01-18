@@ -9,7 +9,7 @@ public class Person {
     public String city = "Unknown";
 
     public String setName(String name) {
-        return .name = name;;
+        return this.name.name = name;
     }
 
     public int setAge(int age) {
