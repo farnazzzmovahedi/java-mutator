@@ -8,7 +8,7 @@ import java.util.List;
 
 public class MutantTester {
 
-    private static final String PROJECT_DIR = "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\RefrenceCode";// Your project directory
+    private static final String PROJECT_DIR = "C:\\github-projects\\java-mutator\\RefrenceCode";// Your project directory
     private static final String SRC_DIR = PROJECT_DIR + "\\src\\main\\java\\org\\example\\"; // Source directory
     private static final String MUTANT_DIR = "mutants"; // Path to mutants directory
     private static final String BACKUP_DIR = PROJECT_DIR + "\\backup";
@@ -119,7 +119,8 @@ public class MutantTester {
     }
 
     private static boolean compileProject() throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("mvn", "clean", "compile");
+        ProcessBuilder pb = new ProcessBuilder("C:\\Users\\iCFixer.ir\\Downloads\\apache-maven-3.9.9\\bin\\mvn.cmd", "clean", "compile");
+        System.out.println("Executing command: " + String.join(" ", pb.command()));
         pb.directory(new File(PROJECT_DIR));
         pb.redirectErrorStream(true);
         Process process = pb.start();
