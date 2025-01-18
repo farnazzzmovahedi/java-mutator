@@ -71,7 +71,7 @@ public class PPD {
 
                                     // Save the mutated code for the cloned CompilationUnit
                                     MutantSaver.save(clonedCU,
-                                            "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PPD\\mutation" + i);
+                                            "mutants\\PPD\\mutation" + i);
                                     i++;
                                 }
                             }
