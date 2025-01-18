@@ -1,4 +1,5 @@
 import com.github.javaparser.ast.CompilationUnit;
+import operators.JavaSpecific.JTD;
 import operators.encapsulation.AMC;
 import operators.inheritance.IHD;
 import operators.inheritance.IHI;
@@ -44,6 +45,9 @@ public class MutationEngine {
                     break;
                 case "ISD":
                     ISD.applyISD(compilationUnits, "mutants/Example_ISD.java");
+                    break;
+                case "JTD":
+                    JTD.applyJTD( "mutants/Example_JTD.java");
                     break;
                 // Add more cases for other operators
                 default:
