@@ -45,10 +45,10 @@ public class MutantTester {
                 } else {
                     System.out.println("Mutant killed: " + mutant.getPath());
                 }
+                // Step 4: Restore the original classes
+                restoreOriginalClasses();
             }
 
-            // Step 4: Restore the original classes
-            restoreOriginalClasses();
         } catch (Exception e) {
             e.printStackTrace();
         }
