@@ -1,8 +1,10 @@
 import com.github.javaparser.ast.CompilationUnit;
+import operators.JavaSpecific.JTD;
 import operators.encapsulation.AMC;
 import operators.inheritance.*;
 import operators.javaSpecific.JSD;
 import operators.javaSpecific.JSI;
+import operators.inheritance.*;
 import operators.polymorphism.PNC;
 import operators.polymorphism.PMD;
 import utils.CompilationUnits;
@@ -52,6 +54,12 @@ public class MutationEngine {
                     break;
                 case "JSD":
                     JSD.applyJSD(compilationUnits, "mutants/");
+                    break;
+                case "JTD":
+                    JTD.applyJTD( "mutants/Example_JTD.java");
+                    break;
+                case "IPC":
+                    IPC.applyIPC(compilationUnits, "mutants/Example_IPC.java");
                     break;
                 // Add more cases for other operators
                 default:
