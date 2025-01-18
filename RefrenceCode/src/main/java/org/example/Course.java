@@ -8,7 +8,7 @@ public class Course {
 
     private int credits;
 
-    private Person professor;
+    private Professor professor;
 
     public Course(int courseId, String courseName, int credits, Professor professor) {
         this.courseId = courseId;
@@ -30,7 +30,7 @@ public class Course {
     }
 
     public Professor getProfessor() {
-        return professor;
+        return this.professor;
     }
 
     public void displayCourseInfo() {
