@@ -11,6 +11,11 @@ public class Duck extends Animal {
     String Name = "Duck";
 
     @Override
+    public String Sound() {
+        return Sound();
+    }
+
+    @Override
     public String Walk() {
         return super.Walk();
     }
@@ -23,9 +28,5 @@ public class Duck extends Animal {
     @Override
     public String Name() {
         return Name;
-    }
-
-    public String Sound() {
-        return Sound;
     }
 }

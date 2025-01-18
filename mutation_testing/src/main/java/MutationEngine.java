@@ -44,7 +44,7 @@ public class MutationEngine {
                     ISD.applyISD(compilationUnits, "mutants/Example_ISD.java");
                     break;
                 case "JTD":
-                    JTD.applyJTD( "mutants/Example_JTD.java");
+                    JTD.applyJTD(compilationUnits, "mutants/Example_JTD.java");
                     break;
                 case "IPC":
                     IPC.applyIPC(compilationUnits, "mutants/Example_IPC.java");

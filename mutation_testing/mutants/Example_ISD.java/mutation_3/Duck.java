@@ -21,11 +21,12 @@ public class Duck extends Animal {
     }
 
     @Override
-    public String Name() {
-        return Name;
+    public String Eat() {
+        return Eat();
     }
 
-    public String Eat() {
-        return Eat;
+    @Override
+    public String Name() {
+        return Name;
     }
 }
