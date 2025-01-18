@@ -56,7 +56,7 @@ public class PMD {
                                 childType.setName(parentType.getNameAsString());
 
                                 // Save the mutated code for the CompilationUnit where the mutation occurred
-                                MutantSaver.save(cu, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PMD\\mutation"+i);
+                                MutantSaver.save(cu, "mutants\\PMD\\mutation"+i);
                                 i.getAndIncrement();
                             }
                         } else {

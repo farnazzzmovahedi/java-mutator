@@ -83,7 +83,7 @@ public class PNC {
                             clonedMutation.setType(selectedChildClass.getNameAsString());
 
                             // Save the mutated CompilationUnit
-                            MutantSaver.save(clonedCU, "D:\\University\\4031\\Software Testing\\Project\\py-mutator\\mutation_testing\\mutants\\PNC\\mutation" + i);
+                            MutantSaver.save(clonedCU, "mutants\\PNC\\mutation" + i);
                             i++;
                         }
                     }

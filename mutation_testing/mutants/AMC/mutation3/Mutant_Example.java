@@ -1,7 +1,12 @@
+package AMCReferenceCode;
+
 public class Example {
 
-    public int number; // Public field to be mutated
-    public String name; // Another public field to be mutated
+    // Public field to be mutated
+    public int number;
+
+    // Another public field to be mutated
+    public String name;
 
     // Public constructor
     public Example(int number, String name) {
@@ -10,7 +15,7 @@ public class Example {
     }
 
     // Public method to greet
-    public void greet() {
+    private void greet() {
         System.out.println("Hello, " + name + "!");
     }
 
