@@ -7,7 +7,7 @@ import java.util.List;
 
 public class MutantTester {
 
-    private static final String PROJECT_DIR = "..\\RefrenceCode";// Your project directory
+    private static final String PROJECT_DIR = "..\\RefrenceCode"; // Your project directory
     private static final String SRC_DIR = PROJECT_DIR + "\\src\\main\\java\\org\\example\\"; // Source directory
     private static final String MUTANT_DIR = "mutants"; // Path to mutants directory
     private static final String BACKUP_DIR = PROJECT_DIR + "\\backup";
@@ -21,13 +21,13 @@ public class MutantTester {
             List<File> mutants = getAllMutants(new File(MUTANT_DIR));
 
             int mutantsCompiled = 0;
+            int mutantsKilled = 0;
 
             // Step 3: Test each mutant
             for (File mutant : mutants) {
                 String className = extractClassName(mutant);
                 System.out.println("Testing mutant for class: " + className);
 
-//                System.out.println("BEGA RAFTAM");
                 // Replace the original class with the mutant
                 replaceClassWithMutant(mutant, className);
 
@@ -35,27 +35,33 @@ public class MutantTester {
                 boolean compiled = compileProject();
                 if (compiled) {
                     mutantsCompiled++;
-                }
-                else  {
+
+                    // Run tests
+                    boolean testsPassed = runTests();
+
+                    // Log results
+                    if (testsPassed) {
+                        System.out.println("Mutant survived: " + mutant.getPath());
+                    } else {
+                        System.out.println("Mutant killed: " + mutant.getPath());
+                        mutantsKilled++;
+                    }
+                } else {
                     System.err.println("Failed to compile mutant: " + mutant.getPath());
                     continue;
                 }
-                System.out.println("Compile Successful");
 
-                // Run tests
-//                boolean testsPassed = runTests();
-//
-//                // Log results
-//                if (testsPassed) {
-//                    System.out.println("Mutant survived: " + mutant.getPath());
-//                } else {
-//                    System.out.println("Mutant killed: " + mutant.getPath());
-//                }
                 // Step 4: Restore the original classes
                 restoreOriginalClasses();
             }
 
+            // Compute Mutation Score (MS)
+            double mutationScore = mutantsKilled / (double) mutants.size() * 100;
+            System.out.println("\nSummary:");
+            System.out.println("Total mutants: " + mutants.size());
             System.out.println("Total mutants compiled: " + mutantsCompiled);
+            System.out.println("Total mutants killed: " + mutantsKilled);
+            System.out.printf("Mutation Score (MS): %.2f%%\n", mutationScore);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -90,15 +96,6 @@ public class MutantTester {
                 System.out.println("Backed up: " + file.getName());
             }
         }
-
-
-        for (File file : files) {
-            if (file.isFile() && file.getName().endsWith(".java")) {
-                Path originalPath = file.toPath();
-                Path backupPath = backupDir.toPath().resolve(file.getName());
-                Files.copy(originalPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
         System.out.println("All original classes backed up.");
     }
 
@@ -121,49 +118,28 @@ public class MutantTester {
 
     private static void replaceClassWithMutant(File mutant, String className) throws IOException {
         Path mutantPath = mutant.toPath();
-
-        // Read and print the contents of the mutant file
-        System.out.println("Mutant Code for class " + className + ":");
-        try (BufferedReader reader = new BufferedReader(new FileReader(mutant))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Print each line of the mutant file
-            }
-        }
-
-        // Define the path to the original file that will be replaced
         Path originalPath = Paths.get(SRC_DIR + className.replace(".", File.separator) + ".java");
-
-        // Ensure the parent directories exist
         Files.createDirectories(originalPath.getParent());
-
-        // Replace the original class with the mutant
         Files.copy(mutantPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
         System.out.println("Replaced original class with mutant: " + mutant.getPath());
     }
 
-
     private static boolean compileProject() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "clean", "compile");
-        System.out.println("Executing command: " + String.join(" ", pb.command()));
         pb.directory(new File(PROJECT_DIR));
         pb.redirectErrorStream(true);
-
         Process process = pb.start();
 
-        // Consume the output streams to prevent blocking
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Log Maven output to console
+                System.out.println(line);
             }
         }
 
-        // Wait for the process to complete
         process.waitFor();
-        return process.exitValue() == 0; // Returns true if the process exited successfully
+        return process.exitValue() == 0;
     }
-
 
     private static boolean runTests() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "test");
@@ -171,7 +147,7 @@ public class MutantTester {
         pb.redirectErrorStream(true);
         Process process = pb.start();
         process.waitFor();
-        return process.exitValue() == 0; // Returns true if tests passed
+        return process.exitValue() == 0;
     }
 
     private static void restoreOriginalClasses() throws IOException {
@@ -197,7 +173,6 @@ public class MutantTester {
         }
 
         for (File file : backupFiles) {
-//            System.out.println("BEGA");
             Path backupPath = file.toPath();
             Path originalPath = srcDir.toPath().resolve(file.getName());
             Files.copy(backupPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
@@ -206,5 +181,4 @@ public class MutantTester {
 
         System.out.println("All original classes restored successfully.");
     }
-
 }

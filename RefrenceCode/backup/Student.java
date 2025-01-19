@@ -2,6 +2,7 @@ package org.example;
 
 public class Student extends Person {
     private String major;
+    private int id = 10;
 
     public Student(int id, String name, String email, String major) {
         super(id, name, email);
