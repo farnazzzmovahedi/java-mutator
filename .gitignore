@@ -4,3 +4,4 @@
 *.xml
 *.xml
 /RefrenceCode/backup
+/mutation_testing/mutants
