@@ -4,7 +4,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
-import com.github.javaparser.ast.Modifier;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -71,14 +70,14 @@ public class IPC {
 
                             String outputFolderPath = "mutants\\IPC";
 
-                            // Save the mutated version
+                            // Save the mutated class only
                             File mutationFolder = new File(outputFolderPath, "mutation_" + mutationIndex.getAndIncrement());
                             if (!mutationFolder.exists()) {
                                 mutationFolder.mkdirs();
                             }
 
-                            // Save all compilation units to the folder
-                            saveCompilationUnits(clonedUnits, mutationFolder);
+                            // Save only the mutated class
+                            saveMutatedClass(currentChild, mutationFolder);
                         }
                     });
                 }
@@ -98,29 +97,21 @@ public class IPC {
     }
 
     /**
-     * Save a list of CompilationUnits to the specified folder.
+     * Save only the mutated class to the specified folder.
+     *
+     * @param mutatedClass The mutated class to save.
+     * @param folder       The folder where the file will be written.
      */
-    private static void saveCompilationUnits(List<CompilationUnit> compilationUnits, File folder) {
-        for (CompilationUnit cu : compilationUnits) {
-            // Find the class name
-            String className = cu.findFirst(ClassOrInterfaceDeclaration.class)
-                    .map(ClassOrInterfaceDeclaration::getNameAsString)
-                    .orElse("UnknownClass");
+    private static void saveMutatedClass(ClassOrInterfaceDeclaration mutatedClass, File folder) {
+        // Determine the file name using the class name
+        CompilationUnit parentCompilationUnit = mutatedClass.findCompilationUnit()
+                .orElseThrow(() -> new RuntimeException("Unable to find CompilationUnit for the mutated class."));
+        String className = mutatedClass.getNameAsString();
 
-            // Check if the class has a parent
-            boolean hasParentClass = cu.findFirst(ClassOrInterfaceDeclaration.class)
-                    .map(cls -> !cls.getExtendedTypes().isEmpty())
-                    .orElse(false);
-
-            // If the class does not have a parent, write it to a file
-            if (hasParentClass) {
-                try (FileWriter writer = new FileWriter(new File(folder, "Mutant" + className + ".java"))) {
-                    writer.write(cu.toString());
-                } catch (IOException e) {
-                    System.err.println("Error saving class " + className + ": " + e.getMessage());
-                }
-            }
+        try (FileWriter writer = new FileWriter(new File(folder, "Mutant" + className + ".java"))) {
+            writer.write(parentCompilationUnit.toString());
+        } catch (IOException e) {
+            System.err.println("Error saving class " + className + ": " + e.getMessage());
         }
     }
-
 }
