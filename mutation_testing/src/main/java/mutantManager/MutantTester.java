@@ -1,7 +1,6 @@
 package mutantManager;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,8 @@ public class MutantTester {
             // Step 2: Get all mutant files
             List<File> mutants = getAllMutants(new File(MUTANT_DIR));
 
+            int mutantsCompiled = 0;
+
             // Step 3: Test each mutant
             for (File mutant : mutants) {
                 String className = extractClassName(mutant);
@@ -32,7 +33,10 @@ public class MutantTester {
 
                 // Compile the project
                 boolean compiled = compileProject();
-                if (!compiled) {
+                if (compiled) {
+                    mutantsCompiled++;
+                }
+                else  {
                     System.err.println("Failed to compile mutant: " + mutant.getPath());
                     continue;
                 }
@@ -50,6 +54,8 @@ public class MutantTester {
                 // Step 4: Restore the original classes
                 restoreOriginalClasses();
             }
+
+            System.out.println("Total mutants compiled: " + mutantsCompiled);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -115,20 +121,49 @@ public class MutantTester {
 
     private static void replaceClassWithMutant(File mutant, String className) throws IOException {
         Path mutantPath = mutant.toPath();
-        Path originalPath = Paths.get(SRC_DIR + className + ".java");
+
+        // Read and print the contents of the mutant file
+        System.out.println("Mutant Code for class " + className + ":");
+        try (BufferedReader reader = new BufferedReader(new FileReader(mutant))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Print each line of the mutant file
+            }
+        }
+
+        // Define the path to the original file that will be replaced
+        Path originalPath = Paths.get(SRC_DIR + className.replace(".", File.separator) + ".java");
+
+        // Ensure the parent directories exist
+        Files.createDirectories(originalPath.getParent());
+
+        // Replace the original class with the mutant
         Files.copy(mutantPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
         System.out.println("Replaced original class with mutant: " + mutant.getPath());
     }
+
 
     private static boolean compileProject() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "clean", "compile");
         System.out.println("Executing command: " + String.join(" ", pb.command()));
         pb.directory(new File(PROJECT_DIR));
         pb.redirectErrorStream(true);
+
         Process process = pb.start();
+
+        // Consume the output streams to prevent blocking
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Log Maven output to console
+            }
+        }
+
+        // Wait for the process to complete
         process.waitFor();
-        return process.exitValue() == 0; // Returns true if compile succeeded
+        return process.exitValue() == 0; // Returns true if the process exited successfully
     }
+
 
     private static boolean runTests() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder("mvn.cmd", "test");

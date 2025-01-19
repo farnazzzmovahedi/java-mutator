@@ -55,6 +55,15 @@ public class IHI {
                     String fieldName = parentVariable.getNameAsString();
 
                     for (ClassOrInterfaceDeclaration childClass : childClasses) {
+                        // Skip if the field already exists in the child class
+                        boolean fieldExistsInChild = childClass.getFields().stream()
+                                .flatMap(field -> field.getVariables().stream())
+                                .anyMatch(variable -> variable.getNameAsString().equals(fieldName));
+
+                        if (fieldExistsInChild) {
+                            continue;
+                        }
+
                         // Clone the child class for mutation
                         CompilationUnit clonedCU = childClass.findCompilationUnit().orElseThrow().clone();
                         ClassOrInterfaceDeclaration clonedChildClass = clonedCU.findFirst(ClassOrInterfaceDeclaration.class).orElseThrow();
@@ -75,7 +84,6 @@ public class IHI {
 
                         // Add the new field to the cloned child class
                         clonedChildClass.addMember(newField);
-                        System.out.println("Added hidden variable '" + fieldName + "' to child class '" + childClass.getNameAsString() + "'");
 
                         // Save the mutated CompilationUnit
                         String mutantPath = "mutants\\IHI\\mutation" + mutantIndex;
@@ -132,4 +140,3 @@ public class IHI {
         return sb.toString();
     }
 }
-
