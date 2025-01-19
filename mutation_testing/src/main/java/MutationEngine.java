@@ -33,7 +33,7 @@ public class MutationEngine {
                     IHD.applyIHD(compilationUnits);
                     break;
                 case "IOD":
-                    IOD.applyIOD(compilationUnits, "mutants/");
+                    IOD.applyIOD(compilationUnits);
                     break;
                 case "PNC":
                     PNC.applyPNC(compilationUnits);
@@ -57,10 +57,10 @@ public class MutationEngine {
                     IPC.applyIPC(compilationUnits);
                     break;
                 case "JSI":
-                    JSI.applyJSI(compilationUnits, "mutants/");
+                    JSI.applyJSI(compilationUnits);
                     break;
                 case "JSD":
-                    JSD.applyJSD(compilationUnits, "mutants/");
+                    JSD.applyJSD(compilationUnits);
                     break;
 
                 // Add more cases for other operators

@@ -4,19 +4,21 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import utils.MutantSaver;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IOD {
 
     /**
      * Apply the IOD mutation operator.
+     *
      * @param compilationUnits List of CompilationUnits representing the source code.
-     * @param outputDirectory Path to save the mutated child class files.
      */
-    public static void applyIOD(List<CompilationUnit> compilationUnits, String outputDirectory) {
+    public static void applyIOD(List<CompilationUnit> compilationUnits) {
+        AtomicInteger mutantIndex = new AtomicInteger(1);
+
         // Maps to store parent-child relationships
         Map<ClassOrInterfaceType, List<ClassOrInterfaceDeclaration>> parentChildMap = new HashMap<>();
 
@@ -56,30 +58,30 @@ public class IOD {
                             .toList();
 
                     // Generate mutants for each overridden method
-                    for (int i = 0; i < overriddenMethods.size(); i++) {
-                        // Clone the child class to create a mutant
-                        ClassOrInterfaceDeclaration mutatedChildClass = childClass.clone();
+                    for (MethodDeclaration methodToDelete : overriddenMethods) {
+                        // Clone the child class for mutation
+                        CompilationUnit clonedCU = childClass.findCompilationUnit().orElseThrow().clone();
+                        ClassOrInterfaceDeclaration clonedChildClass = clonedCU.findFirst(ClassOrInterfaceDeclaration.class).orElseThrow();
 
                         // Remove the overridden method from the cloned class
-                        MethodDeclaration methodToDelete = overriddenMethods.get(i);
-                        mutatedChildClass.getMethodsByName(methodToDelete.getNameAsString())
+                        clonedChildClass.getMethodsByName(methodToDelete.getNameAsString())
                                 .stream()
                                 .filter(method -> method.getType().equals(methodToDelete.getType()) &&
                                         method.getParameters().equals(methodToDelete.getParameters()))
                                 .findFirst()
-                                .ifPresent(mutatedChildClass::remove);
+                                .ifPresent(clonedChildClass::remove);
 
-                        // Save the mutated child class to a file
-                        String mutatedFileName = outputDirectory + "/" + mutatedChildClass.getNameAsString() + "_IOD_Mutant" + (i + 1) + ".java";
-                        try (FileWriter writer = new FileWriter(mutatedFileName)) {
-                            writer.write(mutatedChildClass.toString());
-                            System.out.println("Saved mutant: " + mutatedFileName);
-                        } catch (IOException e) {
-                            System.err.println("Error saving mutated code: " + e.getMessage());
-                        }
+                        // Save the mutated CompilationUnit
+                        String mutantPath = "mutants\\IOD\\mutation" + mutantIndex;
+                        MutantSaver.save(clonedCU, mutantPath);
+                        System.out.println("Saved mutant: " + mutantPath);
+
+                        mutantIndex.getAndIncrement();
                     }
                 }
             }
         });
+
+        System.out.println("IOD mutation applied. Mutants saved to directory: mutants\\IOD\\");
     }
 }
